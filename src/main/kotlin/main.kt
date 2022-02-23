@@ -1,9 +1,12 @@
 
 import kotlinx.serialization.json.JsonElement
+import org.redundent.kotlin.xml.XmlVersion
+import org.redundent.kotlin.xml.xml
 import java.io.File.listRoots
 import java.nio.file.Path
 import java.util.*
 import javax.swing.filechooser.FileSystemView
+import kotlin.collections.ArrayList
 import kotlin.io.path.*
 
 val input = Scanner(System.`in`)
@@ -19,23 +22,37 @@ fun main() {
     println("5. Вывести определённую строку на экран")
     println("6. Удалить файл\n")
     println("--------Работа с JSON---------")
-    println("7. Выполнить сериализацию и записать в файл")
-    println("8. Вывести содержимое файла")
-    println("9. Вывести конкретное свойство")
-    println("10. Удалить файл")
+    println("7. Создать файл Person.json")
+    println("8. Выполнить сериализацию и записать в файл")
+    println("9. Вывести содержимое файла")
+    println("10. Вывести конкретное свойство")
+    println("11. Удалить файл\n")
+    println("---------Работа с XML---------")
+    println("12. Создать файл Persons.xml")
+    println("13. Добавить данные в файл")
+    println("14. Вывести полное содержимое файла")
+    println("15. Вывести конкретный объект")
+    println("16. Удалить файл")
     print(">>>  ")
 
-    when (input.nextInt()) {
+    when (val cmd = input.nextInt()) {
         1 -> disksInfo()
-        2 -> {
-            if (File().create().exists())
-                println("Файл успешно создан!")
-            else
-                println("Не удалось создать файл")
+        2, 7, 12 -> {
+            val file = when (cmd) {
+                2 -> File()
+                7 -> Json()
+                12 -> Xml()
+                else -> File()
+            }
+            when {
+                file.exists() -> println("Файл уже существует!")
+                file.create().exists() -> println("Файл успешно создан!")
+                else -> println("Не удалось создать файл")
+            }
         }
         3 -> {
             println("Введите текст для записи в файл")
-            File().write(readLine() ?: "")
+            File().append(readLine() ?: "")
         }
         4 -> {
             val file = File()
@@ -63,29 +80,28 @@ fun main() {
                 |""".trimMargin()
             )
         }
-        6 -> {
-            if (File().delete())
+        6, 11, 16 -> {
+            val file = when(cmd) {
+                6 -> File()
+                11 -> Json()
+                16 -> Xml()
+                else -> File()
+            }
+
+            if (file.delete())
                 println("Удаление завершено")
             else
                 println("Не удалось удалить файл")
         }
-        7 -> {
-            println("Создание объекта Person:")
-            print("Введите имя  >>>  ")
-            val name = input.next()
-            print("Введите возраст  >>>  ")
-            val age = input.nextInt()
-            print("Введите пол (М - мужской, Ж - женский)  >>>  ")
-            val genderString = input.next()
-
-            val person = Person(name, age, genderString)
+        8 -> {
+            val person = createPerson()
             val json = Json()
 
             json.write(person.toJson())
 
             println("Данные успешно сериализированы и записаны в файл ${json.filename}!")
         }
-        8 -> {
+        9 -> {
             val string = Json().readAll()
 
             if (string == null) {
@@ -95,19 +111,39 @@ fun main() {
             val person = Person.fromJson(string)
             println(person.toString())
         }
-        9 -> {
+        10 -> {
             println("Введите название свойства класса Person (name, age или gender)")
             val property = input.next().lowercase()
 
             println(Json().readProperty(property) ?: "Не удалось открыть файл")
         }
-        10 -> {
-            if (Json().delete())
-                println("Удаление завершено")
-            else
-                println("Не удалось удалить файл")
+        13 -> {
+            val person = createPerson()
+            Xml().write(person)
+            println("Данные записаны в файл!")
+        }
+        14 -> println(Xml().readAll())
+        15 -> {
+            println("Введите имя, возраст или пол человека")
+            val key = input.next()
+            println("Найденные персоны:")
+            Xml().readPerson(key).forEach {
+                println(it.toPrintString())
+            }
         }
     }
+}
+
+fun createPerson(): Person {
+    println("Создание объекта Person:")
+    print("Введите имя  >>>  ")
+    val name = input.next()
+    print("Введите возраст  >>>  ")
+    val age = input.nextInt()
+    print("Введите пол (М - мужской, Ж - женский)  >>>  ")
+    val genderString = input.next()
+
+    return Person(name, age, genderString)
 }
 
 
@@ -134,16 +170,27 @@ open class File(name: String = "") {
         input.next()
     } else name
 
-    private val filePath =
+    private val filePath = //File::class.java.classLoader.getResource(filename)?.path?.substring(1) ?:
         "C:\\Users\\petro\\IdeaProjects\\operating_systems\\src\\main\\resources\\${filename}"
 
-    fun create() =
+    fun exists() =
+        Path(filePath).exists()
+
+    open fun create() =
         Path(filePath).createFile()
 
-    fun write(text: String) =
-        getFile().appendText("$text\n")
+    fun append(text: String) {
+        val file = getFile()
+        if (file.readText().isEmpty())
+            file.writeText(text)
+        else
+            file.appendText("\n$text")
+    }
 
-    fun readAll() =
+    fun write(text: String) =
+        getFile().writeText(text)
+
+    open fun readAll() =
         checkFile()?.readText()
 
     fun readLine(numberLine: Int): String? {
@@ -152,12 +199,12 @@ open class File(name: String = "") {
         else lines[numberLine]
     }
 
-    fun delete() =
+    open fun delete() =
         Path(filePath).deleteIfExists()
 
 
 
-    protected fun getFile(): Path =
+    private fun getFile(): Path =
         checkFile() ?: create()
 
     private fun checkFile(): Path? {
@@ -173,12 +220,81 @@ open class File(name: String = "") {
 class Json: File("Person.json") {
 
     fun write(jsonElement: JsonElement) =
-        getFile().writeText(jsonElement.toString())
+        write(jsonElement.toString())
 
     fun readProperty(property: String): String? {
         val all = readAll() ?: return null
         val value = Person.fromJson(all)[property] ?: return "Такого свойства нет!"
 
         return "$property = $value"
+    }
+}
+
+
+
+class Xml: File("$root.xml") {
+    companion object {
+        private const val root = "Persons"
+    }
+
+    private val txt = File(root + "_xml.txt")
+
+    override fun create(): Path {
+        val path = super.create()
+        val xmlHeader = xml(root, encoding = "UTF-8", version = XmlVersion.V10).toString()
+
+        if (!txt.exists())
+            txt.create()
+        path.writeText(xmlHeader)
+        return path
+    }
+
+    fun write(person: Person) {
+        txt.append(person.toString())
+        updateAll()
+    }
+
+    override fun readAll(): String? {
+        val persons = txt.readAll()?.split("\n") ?: return null
+        val builder = StringBuilder()
+
+        persons.forEach {
+            if (it.isNotEmpty()) {
+                val person = Person.fromString(it)
+                builder.append("${person.toPrintString()}\n")
+            }
+        }
+
+        return builder.toString()
+    }
+
+    fun readPerson(key: String): List<Person> {
+        val strings = txt.readAll()?.split("\n") ?: return ArrayList()
+        val persons = ArrayList<Person>()
+
+        strings.forEach {
+            if (it.contains(key))
+                persons.add(Person.fromString(it))
+        }
+        return persons
+    }
+
+    override fun delete(): Boolean {
+        txt.delete()
+        return super.delete()
+    }
+
+
+    private fun updateAll() {
+        val persons = txt.readAll()?.split("\n") ?: ArrayList()
+
+        val text = xml(root, encoding = "UTF-8", version = XmlVersion.V10) {
+            persons.forEach {
+                if (it.isNotEmpty())
+                    Person.fromString(it).toXml(this)
+            }
+        }.toString()
+
+        write(text)
     }
 }
