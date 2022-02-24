@@ -1,10 +1,7 @@
-
 import kotlinx.serialization.json.JsonElement
 import org.redundent.kotlin.xml.XmlVersion
 import org.redundent.kotlin.xml.xml
 import java.io.File.listRoots
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.nio.file.Path
 import java.util.*
 import javax.swing.filechooser.FileSystemView
@@ -34,12 +31,7 @@ fun main() {
     println("13. Добавить данные в файл")
     println("14. Вывести полное содержимое файла")
     println("15. Вывести конкретный объект")
-    println("16. Удалить файл\n")
-    println("-----Работа с Zip-архивами----")
-    println("17. Создать архив")
-    println("18. Добавить файл в архив")
-    println("19. Разархивировать файл")
-    println("20. Удалить архив")
+    println("16. Удалить файл")
     print(">>>  ")
 
     when (val cmd = input.nextInt()) {
@@ -61,7 +53,6 @@ fun main() {
             val file = File()
             println("Введите текст для записи в файл")
             file.append(readLine() ?: "")
-            println("Строка успешно записана!")
         }
         4 -> {
             val file = File()
@@ -89,7 +80,7 @@ fun main() {
                 |""".trimMargin()
             )
         }
-        6, 11, 16, 20 -> {
+        6, 11, 16 -> {
             val file = when(cmd) {
                 6 -> File()
                 11 -> Json()
@@ -140,24 +131,6 @@ fun main() {
                 println(it.toPrintString())
             }
         }
-//        17 -> {
-//            println("Введите название файла")
-//            val zip = Zip(input.next())
-//            zip.create()
-//            println("Архив успешно создан!")
-//        }
-//        18 -> {
-//            println("Введите название архива")
-//            val zip = Zip(input.next())
-//            println("Введите название файла, который нужно добавить в архив")
-//            zip.addFile(input.next())
-//            println("Файл успешно добавлен!")
-//        }
-//        19 -> {
-//            println("Введите имя архива")
-//            Zip(input.next()).unzip()
-//            println("Разархивировано!")
-//        }
     }
 }
 
@@ -171,15 +144,6 @@ fun createPerson(): Person {
     val genderString = input.next()
 
     return Person(name, age, genderString)
-}
-
-
-fun checkFileName(filename: String): String {
-    if('.' in filename) {
-        val dotIndex = filename.indexOf('.')
-        return filename.substring(0, dotIndex)
-    }
-    return filename
 }
 
 
@@ -206,7 +170,7 @@ open class File(name: String = "") {
         input.next()
     } else name
 
-    protected val filePath = //File::class.java.classLoader.getResource(filename)?.path?.substring(1) ?:
+    private val filePath = //File::class.java.classLoader.getResource(filename)?.path?.substring(1) ?:
         "C:\\Users\\petro\\IdeaProjects\\operating_systems\\src\\main\\resources\\${filename}"
 
     fun exists() =
@@ -226,22 +190,8 @@ open class File(name: String = "") {
     fun write(text: String) =
         getFile().writeText(text)
 
-    open fun readAll(): String? {
-        val string = checkFile()?.readText()
-        println("readText = $string")
-        return string
-    }
-
-    fun getBytes(): ByteArray {
-        val fis = FileInputStream(filePath)
-        val buffer = ByteArray(fis.available())
-        fis.read(buffer)
-
-        return buffer
-    }
-
-    val outputStream =
-        FileOutputStream(filePath)
+    open fun readAll() =
+        checkFile()?.readText()
 
     fun readLine(numberLine: Int): String? {
         val lines = checkFile()?.readLines() ?: return null
@@ -310,7 +260,7 @@ class Xml: File("$root.xml") {
 
         persons.forEach {
             if (it.isNotEmpty()) {
-                val person = Person.fromXmlString(it)
+                val person = Person.fromString(it)
                 builder.append("${person.toPrintString()}\n")
             }
         }
@@ -324,7 +274,7 @@ class Xml: File("$root.xml") {
 
         strings.forEach {
             if (it.contains(key))
-                persons.add(Person.fromXmlString(it))
+                persons.add(Person.fromString(it))
         }
         return persons
     }
@@ -341,79 +291,10 @@ class Xml: File("$root.xml") {
         val text = xml(root, encoding = "UTF-8", version = XmlVersion.V10) {
             persons.forEach {
                 if (it.isNotEmpty())
-                    Person.fromXmlString(it).toXml(this)
+                    Person.fromString(it).toXml(this)
             }
         }.toString()
 
         write(text)
     }
 }
-
-//class Zip(private val oldFilename: String): File("${checkFileName(oldFilename)}.zip") {
-//
-//    override fun create(): Path {
-//        val path = super.create()
-//
-//        addFile(oldFilename)
-//        return path
-//    }
-//
-//    fun addFile(filename: String) {
-//        val file = File(filename)
-//        if (!file.exists())
-//            file.create()
-//
-//        val listEntries = getEntries()
-//        val zipOut = ZipOutputStream(FileOutputStream(filePath))
-//        val entry = ZipEntry(filename)
-//
-//        listEntries.add(entry)
-//
-//        println("Размер сжатого файла = ${entry.compressedSize}")
-//
-//        listEntries.forEach {
-//            zipOut.putNextEntry(it)
-//        }
-//
-//        zipOut.write(file.getBytes())
-//        zipOut.closeEntry()
-//        zipOut.close()
-//    }
-//
-//    fun unzip() {
-//        getEntries {
-//            val name = "new_$name"
-//            val fileOut = File(name).outputStream
-//
-//            do {
-//                val c = it.read()
-//
-//                if (c != -1)
-//                    fileOut.write(c)
-//            } while (c != -1)
-//
-//            fileOut.flush()
-//            it.closeEntry()
-//
-//            fileOut.close()
-//        }
-//    }
-//
-//    private fun getEntries(entryBlock: (ZipEntry.(zin: ZipInputStream) -> Unit)? = null): MutableList<ZipEntry> {
-//        val zin = ZipInputStream(FileInputStream(filePath))
-//        val list = ArrayList<ZipEntry>()
-//        var entry = zin.nextEntry
-//
-//        while (entry != null) {
-//            list.add(entry)
-//
-//            if (entryBlock != null)
-//                entry.entryBlock(zin)
-//
-//            entry = zin.nextEntry
-//        }
-//
-//        zin.close()
-//        return list
-//    }
-//}

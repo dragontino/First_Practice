@@ -22,7 +22,7 @@ data class Person(var name: String = "", var age: Int = 0, val gender: Gender = 
             Json.decodeFromString(serializer(), jsonString)
 
         //возвращает объект класса Person из xml строки
-        fun fromXmlString(string: String): Person {
+        fun fromString(string: String): Person {
             val nameIndex = string.indexOf("name=") + 5
             val ageIndex = string.indexOf("age=") + 4
             val genderIndex = string.indexOf("gender=") + 7

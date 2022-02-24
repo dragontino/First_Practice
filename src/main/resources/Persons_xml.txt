@@ -1,3 +1,0 @@
-Person(name=Иван, age=18, gender=Male)
-Person(name=Иван, age=21, gender=Male)
-Person(name=Андрей, age=29, gender=Male)
