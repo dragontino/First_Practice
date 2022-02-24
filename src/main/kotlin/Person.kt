@@ -18,10 +18,11 @@ data class Person(var name: String = "", var age: Int = 0, val gender: Gender = 
     )
 
     companion object {
-        fun fromJson(jsonString: String) =
+        fun fromJson(jsonString: String): Person =
             Json.decodeFromString(serializer(), jsonString)
 
-        fun fromString(string: String): Person {
+        //возвращает объект класса Person из xml строки
+        fun fromXmlString(string: String): Person {
             val nameIndex = string.indexOf("name=") + 5
             val ageIndex = string.indexOf("age=") + 4
             val genderIndex = string.indexOf("gender=") + 7

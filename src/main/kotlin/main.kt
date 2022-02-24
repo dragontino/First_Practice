@@ -7,9 +7,6 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.file.Path
 import java.util.*
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
-import java.util.zip.ZipOutputStream
 import javax.swing.filechooser.FileSystemView
 import kotlin.collections.ArrayList
 import kotlin.io.path.*
@@ -143,24 +140,24 @@ fun main() {
                 println(it.toPrintString())
             }
         }
-        17 -> {
-            println("Введите название файла")
-            val zip = Zip(input.next())
-            zip.create()
-            println("Архив успешно создан!")
-        }
-        18 -> {
-            println("Введите название архива")
-            val zip = Zip(input.next())
-            println("Введите название файла, который нужно добавить в архив")
-            zip.addFile(input.next())
-            println("Файл успешно добавлен!")
-        }
-        19 -> {
-            println("Введите имя архива")
-            Zip(input.next()).unzip()
-            println("Разархивировано!")
-        }
+//        17 -> {
+//            println("Введите название файла")
+//            val zip = Zip(input.next())
+//            zip.create()
+//            println("Архив успешно создан!")
+//        }
+//        18 -> {
+//            println("Введите название архива")
+//            val zip = Zip(input.next())
+//            println("Введите название файла, который нужно добавить в архив")
+//            zip.addFile(input.next())
+//            println("Файл успешно добавлен!")
+//        }
+//        19 -> {
+//            println("Введите имя архива")
+//            Zip(input.next()).unzip()
+//            println("Разархивировано!")
+//        }
     }
 }
 
@@ -229,8 +226,11 @@ open class File(name: String = "") {
     fun write(text: String) =
         getFile().writeText(text)
 
-    open fun readAll() =
-        checkFile()?.readText()
+    open fun readAll(): String? {
+        val string = checkFile()?.readText()
+        println("readText = $string")
+        return string
+    }
 
     fun getBytes(): ByteArray {
         val fis = FileInputStream(filePath)
@@ -310,7 +310,7 @@ class Xml: File("$root.xml") {
 
         persons.forEach {
             if (it.isNotEmpty()) {
-                val person = Person.fromString(it)
+                val person = Person.fromXmlString(it)
                 builder.append("${person.toPrintString()}\n")
             }
         }
@@ -324,7 +324,7 @@ class Xml: File("$root.xml") {
 
         strings.forEach {
             if (it.contains(key))
-                persons.add(Person.fromString(it))
+                persons.add(Person.fromXmlString(it))
         }
         return persons
     }
@@ -341,7 +341,7 @@ class Xml: File("$root.xml") {
         val text = xml(root, encoding = "UTF-8", version = XmlVersion.V10) {
             persons.forEach {
                 if (it.isNotEmpty())
-                    Person.fromString(it).toXml(this)
+                    Person.fromXmlString(it).toXml(this)
             }
         }.toString()
 
@@ -349,71 +349,71 @@ class Xml: File("$root.xml") {
     }
 }
 
-class Zip(private val oldFilename: String): File("${checkFileName(oldFilename)}.zip") {
-
-    override fun create(): Path {
-        val path = super.create()
-
-        addFile(oldFilename)
-        return path
-    }
-
-    fun addFile(filename: String) {
-        val file = File(filename)
-        if (!file.exists())
-            file.create()
-
-        val listEntries = getEntries()
-        val zipOut = ZipOutputStream(FileOutputStream(filePath))
-        val entry = ZipEntry(filename)
-
-        listEntries.add(entry)
-
-        println("Размер сжатого файла = ${entry.compressedSize}")
-
-        listEntries.forEach {
-            zipOut.putNextEntry(it)
-        }
-
-        zipOut.write(file.getBytes())
-        zipOut.closeEntry()
-        zipOut.close()
-    }
-
-    fun unzip() {
-        getEntries {
-            val name = "new_$name"
-            val fileOut = File(name).outputStream
-
-            do {
-                val c = it.read()
-
-                if (c != -1)
-                    fileOut.write(c)
-            } while (c != -1)
-
-            fileOut.flush()
-            it.closeEntry()
-
-            fileOut.close()
-        }
-    }
-
-    private fun getEntries(entryBlock: (ZipEntry.(zin: ZipInputStream) -> Unit)? = null): MutableList<ZipEntry> {
-        val zin = ZipInputStream(FileInputStream(filePath))
-        val list = ArrayList<ZipEntry>()
-        var entry = zin.nextEntry
-
-        while (entry != null) {
-            list.add(entry)
-
-            if (entryBlock != null)
-                entry.entryBlock(zin)
-
-            entry = zin.nextEntry
-        }
-
-        zin.close()
-        return list
-    }
-}
+//class Zip(private val oldFilename: String): File("${checkFileName(oldFilename)}.zip") {
+//
+//    override fun create(): Path {
+//        val path = super.create()
+//
+//        addFile(oldFilename)
+//        return path
+//    }
+//
+//    fun addFile(filename: String) {
+//        val file = File(filename)
+//        if (!file.exists())
+//            file.create()
+//
+//        val listEntries = getEntries()
+//        val zipOut = ZipOutputStream(FileOutputStream(filePath))
+//        val entry = ZipEntry(filename)
+//
+//        listEntries.add(entry)
+//
+//        println("Размер сжатого файла = ${entry.compressedSize}")
+//
+//        listEntries.forEach {
+//            zipOut.putNextEntry(it)
+//        }
+//
+//        zipOut.write(file.getBytes())
+//        zipOut.closeEntry()
+//        zipOut.close()
+//    }
+//
+//    fun unzip() {
+//        getEntries {
+//            val name = "new_$name"
+//            val fileOut = File(name).outputStream
+//
+//            do {
+//                val c = it.read()
+//
+//                if (c != -1)
+//                    fileOut.write(c)
+//            } while (c != -1)
+//
+//            fileOut.flush()
+//            it.closeEntry()
+//
+//            fileOut.close()
+//        }
+//    }
+//
+//    private fun getEntries(entryBlock: (ZipEntry.(zin: ZipInputStream) -> Unit)? = null): MutableList<ZipEntry> {
+//        val zin = ZipInputStream(FileInputStream(filePath))
+//        val list = ArrayList<ZipEntry>()
+//        var entry = zin.nextEntry
+//
+//        while (entry != null) {
+//            list.add(entry)
+//
+//            if (entryBlock != null)
+//                entry.entryBlock(zin)
+//
+//            entry = zin.nextEntry
+//        }
+//
+//        zin.close()
+//        return list
+//    }
+//}
